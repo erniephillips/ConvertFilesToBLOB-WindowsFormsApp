@@ -1,0 +1,7 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/ConvertFilesToBLOB/v14
+/ConvertFilesToBLOB/bin/Debug
+/ConvertFilesToBLOB/obj/Debug
