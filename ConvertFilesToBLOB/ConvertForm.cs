@@ -32,17 +32,20 @@ namespace ConvertFilesToBLOB
 
                 string[] files = Directory.GetFiles(path);
                 List<byte[]> blobList = new List<byte[]>();
-
+                string message = "";
                 foreach (var file in files)
                 {
                     byte[] fileBytes = File.ReadAllBytes(file);
                     blobList.Add(fileBytes);
+                    message += file + "\n";
                 }
 
                 foreach(byte[] blob in blobList)
                 {
                     System.Diagnostics.Debug.WriteLine(blob);
                 }
+
+                MessageBox.Show(message);
             }
         }
     }
