@@ -52,9 +52,11 @@ namespace ConvertFilesToBLOB
                     {
                         foreach (byte[] blob in blobList)
                         {
-                            cmd.CommandText = "INSERT INTO BlobStorage([File], FileName) VALUES(@param1, @param2)";
-                            cmd.Parameters.AddWithValue("@param1", blob);
-                            cmd.Parameters.AddWithValue("@param2", "filename");
+                            //cmd.CommandText = "INSERT INTO BlobStorage([File], FileName) VALUES(@param1, @param2)";
+                            cmd.CommandText = String.Format("INSERT INTO BlobStorage(FileName, [File]) VALUES ('file', CAST('{0}' AS VARBINARY(MAX)))", blob.ToString());
+
+                            cmd.Parameters.Add("@param1", SqlDbType.VarBinary, -1).Value = blob;
+                            cmd.Parameters.Add("@param2", SqlDbType.NVarChar, 100).Value = "filename";
                             cmd.Connection = cn; //this was where the error originated in the first place.
                             cn.Open();
                             cmd.ExecuteNonQuery();
