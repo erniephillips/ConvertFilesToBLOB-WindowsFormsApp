@@ -26,65 +26,98 @@ namespace ConvertFilesToBLOB
 
         private void button1_Click(object sender, EventArgs e)
         {
-            FolderBrowserDialog fbd = new FolderBrowserDialog();
-            if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            List<FileObject> files = new List<FileObject>();
+
+            using (SqlConnection con = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\Users\phill\Source\Repos\ConvertFilesToBLOB-WindowsFormsApp\ConvertFilesToBLOB\DBmdf.mdf;Integrated Security=True"))
             {
-                var path = fbd.SelectedPath;
-
-                string[] files = Directory.GetFiles(path);
-                List<byte[]> blobList = new List<byte[]>();
-
-                string message = "";
-
-                foreach (var file in files)
+                con.Open();
+                string query = "SELECT * FROM PathStorage";
+                using (SqlCommand cmd = new SqlCommand(query, con))
                 {
-                    byte[] fileBytes = File.ReadAllBytes(file);
-                    blobList.Add(fileBytes);
-                    message += file + "\n";
-                }
-
-
-
-                //open db connection for insert of BLOB
-                using (SqlConnection cn = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\DBmdf.mdf;Integrated Security=True"))
-                {
-                    using (SqlCommand cmd = new SqlCommand())
+                    cmd.CommandType = CommandType.Text;
+                    using (SqlDataReader dr = cmd.ExecuteReader())
                     {
-                        foreach (byte[] blob in blobList)
+                        while (dr.Read())
                         {
-                            //cmd.CommandText = "INSERT INTO BlobStorage([File], FileName) VALUES(@param1, @param2)";
-                            cmd.CommandText = String.Format("INSERT INTO BlobStorage(FileName, [File]) VALUES ('file', CAST('{0}' AS VARBINARY(MAX)))", blob.ToString());
-
-                            cmd.Parameters.Add("@param1", SqlDbType.VarBinary, -1).Value = blob;
-                            cmd.Parameters.Add("@param2", SqlDbType.NVarChar, 100).Value = "filename";
-                            cmd.Connection = cn; //this was where the error originated in the first place.
-                            cn.Open();
-                            cmd.ExecuteNonQuery();
+                            FileObject fo = new FileObject();
+                            fo.fileData = File.ReadAllBytes(dr["FilePath"].ToString());
+                            fo.fileName = dr["FileName"].ToString();
+                            files.Add(fo);
                         }
+                            
                     }
                 }
-
-                //string connectionString = @"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\DBmdf.mdf;Integrated Security=True";
-                //using (SqlConnection con = new SqlConnection(connectionString))
-                //{
-                //    foreach (byte[] blob in blobList)
-                //    {
-                //        string sql = "INSERT INTO BlobStorage([File], FileName) VALUES(@param1, @param2)";
-                //        using (SqlCommand cmd = new SqlCommand(sql, con))
-                //        {
-                //            con.Open();
-
-                //            cmd.Parameters.Add("@param1", SqlDbType.VarBinary).Value = blob;
-                //            cmd.Parameters.Add("@param2", SqlDbType.NVarChar, 100).Value = "filename";
-                //            cmd.CommandType = CommandType.Text;
-                //            cmd.ExecuteNonQuery();
-                //        }
-                //    }
-                //    con.Close();
-                //}
-
-                MessageBox.Show(message);
+                con.Close();
             }
+
+            //open db connection for insert of BLOB
+            using (SqlConnection cn = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\Users\phill\Source\Repos\ConvertFilesToBLOB-WindowsFormsApp\ConvertFilesToBLOB\DBmdf.mdf;Integrated Security=True"))
+            {
+                cn.Open();
+                var command = "INSERT INTO BlobStorage(FileData, FileName) VALUES(@param1, @param2)";
+                using (SqlCommand cmd = new SqlCommand(command, cn))
+                {
+                    foreach (FileObject fo in files)
+                    {
+                        cmd.Parameters.Add("@param1", SqlDbType.VarBinary, -1).Value = fo.fileData;
+                        cmd.Parameters.Add("@param2", SqlDbType.NVarChar, 100).Value = fo.fileName;
+                        cmd.ExecuteNonQuery();
+                        cmd.Parameters.Clear();
+                    }
+                }
+            }
+
+            /*****************OPEN A FOLDER and CONVERT ALL FILES IN THAT FOLDER TO BLOB********************/
+            //FolderBrowserDialog fbd = new FolderBrowserDialog();
+            //if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            //{
+            //    var path = fbd.SelectedPath;
+
+            //    string[] files = Directory.GetFiles(path);
+            //    List<byte[]> blobList = new List<byte[]>();
+
+            //    string message = "";
+
+            //    foreach (var file in files)
+            //    {
+            //        byte[] fileBytes = File.ReadAllBytes(file);
+            //        blobList.Add(fileBytes);
+            //        message += file + "\n";
+            //    }
+
+
+
+            //    //open db connection for insert of BLOB
+            //    using (SqlConnection cn = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\Users\phill\Source\Repos\ConvertFilesToBLOB-WindowsFormsApp\ConvertFilesToBLOB\DBmdf.mdf;Integrated Security=True"))
+            //    {
+            //        cn.Open();
+            //        var command = "INSERT INTO BlobStorage(FileData, FileName) VALUES(@param1, @param2)";
+            //        using (SqlCommand cmd = new SqlCommand(command, cn))
+            //        {
+            //            foreach (byte[] blob in blobList)
+            //            {
+            //                try
+            //                {
+            //                    cmd.Parameters.Add("@param1", SqlDbType.VarBinary, -1).Value = blob;
+            //                    cmd.Parameters.Add("@param2", SqlDbType.NVarChar, 100).Value = "filename";
+            //                    cmd.ExecuteNonQuery();
+            //                }
+            //                catch(Exception ex)
+            //                {
+
+            //                }
+            //            }
+            //        }
+            //    }
+
+            //    MessageBox.Show(message);
+            //}
         }
     }
+}
+
+public class FileObject
+{
+    public byte[] fileData { get; set; }
+    public string fileName { get; set; }
 }
